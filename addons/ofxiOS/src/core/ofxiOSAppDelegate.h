@@ -42,6 +42,10 @@
 
 @interface ofxiOSAppDelegate : NSObject <UIApplicationDelegate> {
     NSInteger currentScreenIndex;
+    BOOL bSupportedPortrait;
+    BOOL bSupportedPortraitUpsideDown;
+    BOOL bSupportedLandscapeLeft;
+    BOOL bSupportedLandscapeRight;
 }
 
 @property (nonatomic, retain) UIWindow * window;

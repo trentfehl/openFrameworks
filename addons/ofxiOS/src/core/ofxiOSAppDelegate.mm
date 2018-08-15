@@ -34,10 +34,12 @@
 #if TARGET_OS_IOS || (TARGET_OS_IPHONE && !TARGET_OS_TV)
 
 #include "ofxiOSViewController.h"
+#include "ofxiOSGLKViewController.h"
 #include "ofxiOSExternalDisplay.h"
 #include "ofxiOSExtras.h"
 #include "ofxiOSAlerts.h"
 #include "ofxiOSEAGLView.h"
+#include "ofxiOSGLKView.h"
 #include "ofAppiOSWindow.h"
 #include "ofAppRunner.h"
 #include "ofUtils.h"
@@ -227,8 +229,18 @@
 
 //-------------------------------------------------------------------------------------------
 #ifdef __IPHONE_6_0
--(NSUInteger)application:(UIApplication *)application supportedInterfaceOrientationsForWindow:(UIWindow *)window {
-    return UIInterfaceOrientationMaskAll;
+#ifdef __IPHONE_9_0
+- (UIInterfaceOrientationMask)application:(UIApplication *)application supportedInterfaceOrientationsForWindow:(UIWindow *)window
+#else
+- (NSUInteger)application:(UIApplication *)application supportedInterfaceOrientationsForWindow:(UIWindow *)window
+#endif
+{
+    if ([UIDevice currentDevice].systemVersion.floatValue < 8.f) {
+        
+        return UIInterfaceOrientationPortrait | UIInterfaceOrientationLandscapeLeft | UIInterfaceOrientationLandscapeRight | UIInterfaceOrientationPortraitUpsideDown;
+    }
+    else
+        return UIInterfaceOrientationMaskAll;
 }
 #endif
 
@@ -242,8 +254,12 @@
 			if([self.uiViewController respondsToSelector:@selector(isReadyToRotate)]) {
 				if([self.uiViewController isReadyToRotate]) {
             		ofxiOSAlerts.deviceOrientationChanged( deviceOrientation );
-				}
-			}
+                } else {
+                    ofLogVerbose("ofxiOSAppDelegate") << "receivedRotate however isReadyToRotate = NO ";
+                }
+            } else {
+                ofxiOSAlerts.deviceOrientationChanged( deviceOrientation );
+            }
 		}
 	}else {
         ofxiOSAlerts.deviceOrientationChanged( deviceOrientation );
