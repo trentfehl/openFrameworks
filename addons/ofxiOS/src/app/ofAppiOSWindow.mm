@@ -35,10 +35,12 @@
 #if TARGET_OS_IOS || (TARGET_OS_IPHONE && !TARGET_OS_TV)
     #include "ofxiOSAppDelegate.h"
     #include "ofxiOSViewController.h"
+    #include "ofxiOSGLKViewController.h"
     const std::string appDelegateName = "ofxiOSAppDelegate";
 #elif TARGET_OS_TV
     #include "ofxtvOSAppDelegate.h"
     #include "ofxtvOSViewController.h"
+    #include "ofxtvOSGLKViewController.h"
     const std::string appDelegateName = "ofxtvOSAppDelegate";
 #endif
 #include "ofxiOSGLKView.h"
@@ -238,11 +240,6 @@ void ofAppiOSWindow::setOrientation(ofOrientation toOrientation) {
 
 
     id<UIApplicationDelegate> appDelegate = [UIApplication sharedApplication].delegate;
-    if([appDelegate respondsToSelector:@selector(glViewController)] == NO) {
-        // check app delegate has glViewController,
-        // otherwise calling glViewController will cause a crash.
-        return;
-    }
     UIViewController * uiViewController = ((ofxiOSAppDelegate *)appDelegate).uiViewController;
 	if([uiViewController isKindOfClass:[ofxiOSViewController class]] == YES) {
 		ofxiOSViewController * glViewController = (ofxiOSViewController*)uiViewController;
@@ -257,7 +254,20 @@ void ofAppiOSWindow::setOrientation(ofOrientation toOrientation) {
 				}
 			}
 		}
-	}
+    } else if([uiViewController isKindOfClass:[ofxiOSGLKViewController class]] == YES) {
+        ofxiOSGLKViewController * glKViewController = (ofxiOSGLKViewController*)uiViewController;
+        if(glKViewController) {
+            ofxiOSGLKView * glKView = glKViewController.glView;
+            if(settings.enableHardwareOrientation == true) {
+                [glKViewController rotateToInterfaceOrientation:interfaceOrientation animated:settings.enableHardwareOrientationAnimation];
+            } else {
+                [[UIApplication sharedApplication] setStatusBarOrientation:interfaceOrientation animated:settings.enableHardwareOrientationAnimation];
+                if(bResized == true) {
+                    [glKView layoutSubviews]; // calling layoutSubviews so window resize notification is fired.
+                }
+            }
+        }
+    }
 #endif
 }
 

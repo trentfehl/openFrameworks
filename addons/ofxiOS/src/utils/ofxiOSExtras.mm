@@ -35,9 +35,11 @@
 #if TARGET_OS_IOS || (TARGET_OS_IPHONE && !TARGET_OS_TV)
 #include "ofxiOSAppDelegate.h"
 #include "ofxiOSViewController.h"
+#include "ofxiOSGLKViewController.h"
 #elif TARGET_OS_TV
 #include "ofxtvOSAppDelegate.h"
 #include "ofxtvOSViewController.h"
+#include "ofxtvOSGLKViewController.h"
 #endif
 #include "ofxiOSEAGLView.h"
 #include "ofxiOSGLKView.h"
