@@ -394,6 +394,13 @@ static ofxiOSGLKView * _instanceRef = nil;
     [self touchesEnded:touches withEvent:event];
 }
 
+- (bool)hardwareRotation {
+    if(window != NULL) {
+        return window->doesHWOrientation();
+    }
+    return false;
+}
+
 - (UIImage*)getSnapshot {
     return self.snapshot;
 }

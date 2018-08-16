@@ -154,7 +154,15 @@ ofxiOSGLKView * ofxiOSGetGLKView() {
 
 //--------------------------------------------------------------
 UIView * ofxiOSGetGLParentView() {
-    return ofxiOSGetGLView().superview;
+    if([[ofxiOSGetAppDelegate() uiViewController] isKindOfClass:[ofxiOSViewController class]] == NO)
+        return ofxiOSGetGLKView().superview;
+    else
+        return ofxiOSGetGLView().superview;
+}
+
+//--------------------------------------------------------------
+UIView * ofxiOSGetGLKParentView() {
+    return ofxiOSGetGLKView().superview;
 }
 
 //--------------------------------------------------------------
@@ -189,7 +197,17 @@ ofxtvOSAppDelegate * ofxiOSGetAppDelegate() {
 
 //--------------------------------------------------------------
 ofxtvOSViewController * ofxiOSGetViewController() {
-    return [ofxiOSGetAppDelegate() glViewController];
+    if([[ofxiOSGetAppDelegate() uiViewController] isKindOfClass:[ofxiOSViewController class]] == YES)
+        return (ofxtvOSViewController*)[ofxiOSGetAppDelegate() uiViewController];
+    else
+        return nil;
+}
+
+ofxtvOSGLKViewController * ofxiOSGetGLKViewController() {
+    if([[ofxiOSGetAppDelegate() uiViewController] isKindOfClass:[ofxiOSGLKViewController class]] == YES)
+        return (ofxtvOSGLKViewController*)[ofxiOSGetAppDelegate() uiViewController];
+    else
+        return nil;
 }
 
 #endif

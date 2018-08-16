@@ -28,6 +28,14 @@ public:
     void rotateToLandscapeRight();
     void toggleAutoRotation();
     
+    void pollOrietationStatus();
+    
+    string currentOrientation = "";
+    string currentOrientationSyntax = "";
+    string currentUIOrientation = "";
+    
+    UIInterfaceOrientation currentDeviceOrientation;
+    
     bool bAuto;
 };
 

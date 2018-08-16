@@ -112,12 +112,14 @@ ofxiOSAppDelegate * ofxiOSGetAppDelegate();
 
 // return iphone view controller.
 ofxiOSViewController * ofxiOSGetViewController();
+ofxiOSGLKViewController * ofxiOSGetGLKViewController();
 #elif TARGET_OS_TV
 // return application delegate
 ofxtvOSAppDelegate * ofxiOSGetAppDelegate();
 
 // return iphone view controller.
 ofxtvOSViewController * ofxiOSGetViewController();
+ofxtvOSGLKViewController * ofxiOSGetGLKViewController();
 #endif
 
 

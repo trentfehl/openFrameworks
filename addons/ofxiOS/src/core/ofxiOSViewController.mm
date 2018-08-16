@@ -35,7 +35,7 @@
 - (id)initWithFrame:(CGRect)frame app:(ofxiOSApp *)app sharegroup:(EAGLSharegroup *)sharegroup{
     currentInterfaceOrientation = pendingInterfaceOrientation = UIInterfaceOrientationPortrait;
     if((self = [super init])) {
-        currentInterfaceOrientation = pendingInterfaceOrientation = self.interfaceOrientation;
+        currentInterfaceOrientation = pendingInterfaceOrientation = [[UIApplication sharedApplication] statusBarOrientation];
         if( [[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending ) {
             bReadyToRotate  = NO;
         }else{
@@ -315,7 +315,7 @@
 //borg
 #ifdef __IPHONE_8_0
 - (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
-
+    [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
     CGPoint center;
     
     center.x = size.width * 0.5;
@@ -354,27 +354,11 @@
 //-------------------------------------------------------------- iOS6.
 #ifdef __IPHONE_6_0
 - (NSUInteger)supportedInterfaceOrientations {
-    switch (currentInterfaceOrientation) {
-        case UIInterfaceOrientationPortrait:
-            return UIInterfaceOrientationMaskPortrait;
-            break;
-        case UIInterfaceOrientationPortraitUpsideDown:
-            return UIInterfaceOrientationMaskPortraitUpsideDown;
-            break;
-        case UIInterfaceOrientationLandscapeLeft:
-            return UIInterfaceOrientationMaskLandscapeLeft;
-            break;
-        case UIInterfaceOrientationLandscapeRight:
-            return UIInterfaceOrientationMaskLandscapeRight;
-            break;
-        default:
-            break;
-    }
     // defaults to orientations selected in the .plist file ('Supported Interface Orientations' in the XCode Project)
     return -1; 
 }
 - (BOOL)shouldAutorotate {
-    return YES;
+    return NO;
 }
 #endif
 

@@ -20,6 +20,10 @@
     BOOL bReadyToRotate;
     BOOL bFirstUpdate;
     BOOL bAnimated;
+    BOOL bSupportedPortrait;
+    BOOL bSupportedPortraitUpsideDown;
+    BOOL bSupportedLandscapeLeft;
+    BOOL bSupportedLandscapeRight;
 }
 @end
 
@@ -34,7 +38,7 @@
 - (id)initWithFrame:(CGRect)frame app:(ofxiOSApp *)app sharegroup:(EAGLSharegroup *)sharegroup{
     currentInterfaceOrientation = pendingInterfaceOrientation = UIInterfaceOrientationPortrait;
     if((self = [super init])) {
-        currentInterfaceOrientation = pendingInterfaceOrientation = self.interfaceOrientation;
+        currentInterfaceOrientation = pendingInterfaceOrientation = [[UIApplication sharedApplication] statusBarOrientation];
         if( [[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending ) {
             bReadyToRotate  = NO;
         }else{
@@ -45,10 +49,28 @@
         
         self.glView = [[[ofxiOSGLKView alloc] initWithFrame:frame andApp:app sharegroup:sharegroup] autorelease];
         self.glView.delegate = self;
+        
+        NSArray* supportedOrientations = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"UISupportedInterfaceOrientations"];
+        if (supportedOrientations != nil)
+        {
+            for(int i = 0; i < [supportedOrientations count]; i++)
+            {
+                NSString* orientation = (NSString*)[supportedOrientations objectAtIndex:i];
+                if ([orientation isEqualToString:@"UIInterfaceOrientationPortrait"])
+                    bSupportedPortrait = true;
+                if ([orientation isEqualToString:@"UIInterfaceOrientationPortraitUpsideDown"])
+                    bSupportedPortraitUpsideDown = true;
+                if ([orientation isEqualToString:@"UIInterfaceOrientationLandscapeLeft"])
+                    bSupportedLandscapeLeft = true;
+                if ([orientation isEqualToString:@"UIInterfaceOrientationLandscapeRight"])
+                    bSupportedLandscapeRight = true;
+            }
+        }
     }
     
     return self;
 }
+
 
 - (void) dealloc {
     [self.glView removeFromSuperview];
@@ -56,6 +78,11 @@
     self.glView = nil;
     
     [super dealloc];
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
 }
 
 - (void)viewDidLoad {
@@ -94,6 +121,12 @@
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
     [self.glView resetTouches];
+    
+    [self.parentViewController topLayoutGuide]; // status bar visibility changes.
+}
+
+- (void)viewWillLayoutSubviews {
+    [super viewWillLayoutSubviews];
 }
 
 - (void)glkViewControllerUpdate:(GLKViewController *)controller {
@@ -206,13 +239,136 @@
     }
 }
 
+// iOS8+ version of willAnimateRotationToInterfaceOrientation
+//NOTE: Only called if actually resizing and not masked
+//http://stackoverflow.com/questions/25935006/ios8-interface-rotation-methods-not-called
+
+//borg
+#ifdef __IPHONE_8_0
+- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+    
+    [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
+    
+    CGPoint center;
+    
+    center.x = size.width * 0.5;
+    center.y = size.height * 0.5;
+    
+    
+    if(bAnimated) {
+        NSTimeInterval duration = 0.3;
+        [self.glView.layer removeAllAnimations];
+        [UIView animateWithDuration:duration animations:^{
+            self.glView.center = center;
+            self.glView.transform = CGAffineTransformMakeRotation(0);
+            self.glView.frame = CGRectMake(0, 0, size.width,size.height);
+        }];
+    } else {
+        self.glView.center = center;
+        self.glView.transform = CGAffineTransformMakeRotation(0);
+        self.glView.frame = CGRectMake(0, 0, size.width,size.height);
+    }
+    
+    [coordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext> context) {
+        
+        // Place code here to perform animations during the rotation.
+        // You can pass nil or leave this block empty if not necessary.
+        
+    } completion:^(id<UIViewControllerTransitionCoordinatorContext> context) {
+        
+        // Code here will execute after the rotation has finished.
+        // Equivalent to placing it in the deprecated method -[didRotateFromInterfaceOrientation:]
+        
+    }];
+}
+#endif
+
+
+- (void)didRotateFromInterfaceOrientation:(UIInterfaceOrientation)fromInterfaceOrientation {
+    
+    // CALLBACK 4.
+    // This action marks the end of the rotation process.
+    // You can use this method to show views, change the layout of views, or make other changes to your app.
+}
+
+//-------------------------------------------------------------- iOS5 and earlier.
+- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation {
+    return (toInterfaceOrientation == currentInterfaceOrientation);
+}
+
+- (BOOL)supportsOrientation:(UIInterfaceOrientation)orientation
+{
+    if(glView && glView.hardwareRotation == NO) {
+        
+        if(currentInterfaceOrientation == orientation)
+            return YES;
+        else
+            return NO;
+    }
+    if(orientation == UIInterfaceOrientationPortrait && bSupportedPortrait)
+        return YES;
+    else if(orientation == UIInterfaceOrientationPortraitUpsideDown && bSupportedPortraitUpsideDown)
+        return YES;
+    else if(orientation == UIInterfaceOrientationLandscapeLeft && bSupportedLandscapeLeft)
+        return YES;
+    else if(orientation == UIInterfaceOrientationLandscapeRight && bSupportedLandscapeRight)
+        return YES;
+    else
+        return NO;
+}
+
+//-------------------------------------------------------------- iOS6.
+#ifdef __IPHONE_6_0
+#if __IPHONE_OS_VERSION_MAX_ALLOWED < 90000
+- (NSUInteger)supportedInterfaceOrientations
+#else
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations
+#endif
+{
+    if(glView && glView.hardwareRotation == NO) {
+        switch (currentInterfaceOrientation) {
+            case UIInterfaceOrientationPortrait:
+                return UIInterfaceOrientationMaskPortrait;
+                break;
+            case UIInterfaceOrientationPortraitUpsideDown:
+                return UIInterfaceOrientationMaskPortraitUpsideDown;
+                break;
+            case UIInterfaceOrientationLandscapeLeft:
+                return UIInterfaceOrientationMaskLandscapeLeft;
+                break;
+            case UIInterfaceOrientationLandscapeRight:
+                return UIInterfaceOrientationMaskLandscapeRight;
+                break;
+            default:
+                break;
+        }
+    }
+   
+    NSUInteger ret = 0;
+    if ([self supportsOrientation:UIInterfaceOrientationPortrait]) {
+        ret = ret | (1 << UIInterfaceOrientationPortrait);
+    }
+    if ([self supportsOrientation:UIInterfaceOrientationPortraitUpsideDown]) {
+        ret = ret | (1 << UIInterfaceOrientationPortraitUpsideDown);
+    }
+    if ([self supportsOrientation:UIInterfaceOrientationLandscapeRight]) {
+        ret = ret | (1 << UIInterfaceOrientationLandscapeRight);
+    }
+    if ([self supportsOrientation:UIInterfaceOrientationLandscapeLeft]) {
+        ret = ret | (1 << UIInterfaceOrientationLandscapeLeft);
+    }
+    
+    return ret;
+}
+
 - (void)rotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
                             animated:(BOOL)animated {
     bAnimated = animated;
     
-    
     if(bReadyToRotate == NO) {
         pendingInterfaceOrientation = interfaceOrientation;
+        
+        NSLog(@"bReadyToRotate = NO");
         
         // we need to update the dimensions here, so if ofSetOrientation is called in setup,
         // then it will return the correct width and height
@@ -230,7 +386,19 @@
     
     
     if(currentInterfaceOrientation == interfaceOrientation && !bFirstUpdate) {
-        return;
+        CGSize screenSize = [UIScreen mainScreen].bounds.size;
+        CGRect bounds = CGRectMake(0, 0, screenSize.width, screenSize.height);
+        if(UIInterfaceOrientationIsLandscape(currentInterfaceOrientation)) {
+            if(screenSize.width > screenSize.height) {
+                NSLog(@"currentInterfaceOrientation == interfaceOrientation 1");
+                return;
+            }
+        } else {
+            if(screenSize.height > screenSize.width) {
+                NSLog(@"currentInterfaceOrientation == interfaceOrientation 2");
+                return;
+            }
+        }
     }
     
     if(pendingInterfaceOrientation != interfaceOrientation) {
@@ -244,9 +412,16 @@
         [self.glView updateDimensions];
     }
     
+    currentInterfaceOrientation = [[UIApplication sharedApplication] statusBarOrientation];
+    UIInterfaceOrientation origin = currentInterfaceOrientation;
+    
     CGSize screenSize = [UIScreen mainScreen].bounds.size;
     CGPoint center;
     CGRect bounds = CGRectMake(0, 0, screenSize.width, screenSize.height);
+    
+     if(glView && glView.hardwareRotation == NO) {
+         origin =interfaceOrientation;
+     }
     
     if(UIInterfaceOrientationIsLandscape(interfaceOrientation)) {
         center.x = screenSize.height * 0.5;
@@ -272,8 +447,6 @@
             bounds.size.width = screenSize.width;
             bounds.size.height = screenSize.height;
         }
-        //borg
-        //NSLog(@"w %f h %f",[UIScreen mainScreen].bounds.size.width,[UIScreen mainScreen].bounds.size.height);
         //assumes Portrait orientation
         if(screenSize.width>screenSize.height){
             center.x = screenSize.height * 0.5;
@@ -282,7 +455,6 @@
             center.x = screenSize.width * 0.5;
             center.y = screenSize.height * 0.5;
         }
-        //NSLog(@"rotating to portrait %i, is portrait %i, currentInterfaceOrientation %i, bound: w %f h %f",UIInterfaceOrientationIsPortrait(interfaceOrientation),UIInterfaceOrientationIsPortrait(self.interfaceOrientation),UIInterfaceOrientationIsPortrait(currentInterfaceOrientation),bounds.size.width,bounds.size.height);
     }
     
     float rot1 = [self rotationForOrientation:currentInterfaceOrientation];
@@ -314,134 +486,16 @@
     
     [self.glView updateDimensions];
 }
+#endif
 
-
-//-------------------------------------------------------------- orientation callbacks.
-// http://developer.apple.com/library/ios/#featuredarticles/ViewControllerPGforiPhoneOS/RespondingtoDeviceOrientationChanges/RespondingtoDeviceOrientationChanges.html
-
-- (void)willRotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation
-                                duration:(NSTimeInterval)duration {
-    
-    // CALLBACK 1.
-    // The window calls the root view controller’s willRotateToInterfaceOrientation:duration: method.
-    // Container view controllers forward this message on to the currently displayed content view controllers.
-    // You can override this method in your custom content view controllers to hide views or make other changes to your view layout before the interface is rotated.
-    // Deprecated in iOS 8. See viewWillTransitionToSize below.
-}
-
-- (void)viewWillLayoutSubviews {
-    [super viewWillLayoutSubviews];
-    
-    // CALLBACK 2.
-    // The window adjusts the bounds of the view controller’s view.
-    // This causes the view to layout its subviews, triggering the view controller’s viewWillLayoutSubviews method.
-    // When this method runs, you can query the app object’s statusBarOrientation property to determine the current user interface layout.
-}
-
-- (void)willAnimateRotationToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation
-                                         duration:(NSTimeInterval)duration {
-    
-    // CALLBACK 3.
-    // This method is called from within an animation block so that any property changes you make
-    // are animated at the same time as other animations that comprise the rotation.
-    // Deprecated in iOS 8. See viewWillTransitionToSize below.
-    
-    CGSize screenSize = [UIScreen mainScreen].bounds.size;
-    
-    CGPoint center;
-    // Is the iOS version less than 8?
-    if( [[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending ) {
-        if(UIInterfaceOrientationIsLandscape(self.interfaceOrientation)) {
-            center.x = screenSize.height * 0.5;
-            center.y = screenSize.width * 0.5;
-        } else {
-            center.x = screenSize.width * 0.5;
-            center.y = screenSize.height * 0.5;
-        }
-    } else {
-        center.x = screenSize.width * 0.5;
-        center.y = screenSize.height * 0.5;
-    }
-    
-    if(bAnimated) {
-        NSTimeInterval duration = 0.3;
-        [self.glView.layer removeAllAnimations];
-        [UIView animateWithDuration:duration animations:^{
-            self.glView.center = center;
-            self.glView.transform = CGAffineTransformMakeRotation(0);
-        }];
-    } else {
-        self.glView.center = center;
-        self.glView.transform = CGAffineTransformMakeRotation(0);
-    }
-}
-
-// iOS8+ version of willAnimateRotationToInterfaceOrientation
-//NOTE: Only called if actually resizing and not masked
-//http://stackoverflow.com/questions/25935006/ios8-interface-rotation-methods-not-called
-
-//borg
-#ifdef __IPHONE_8_0
-- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
-    
-    CGPoint center;
-    
-    center.x = size.width * 0.5;
-    center.y = size.height * 0.5;
-    
-    
-    if(bAnimated) {
-        NSTimeInterval duration = 0.3;
-        [self.glView.layer removeAllAnimations];
-        [UIView animateWithDuration:duration animations:^{
-            self.glView.center = center;
-            self.glView.transform = CGAffineTransformMakeRotation(0);
-            self.glView.frame = CGRectMake(0, 0, size.width,size.height);
-        }];
-    } else {
-        self.glView.center = center;
-        self.glView.transform = CGAffineTransformMakeRotation(0);
-        self.glView.frame = CGRectMake(0, 0, size.width,size.height);
-    }
+#ifdef __IPHONE_6_0
+- (BOOL)shouldAutorotate {
+    return YES;
 }
 #endif
 
-
-- (void)didRotateFromInterfaceOrientation:(UIInterfaceOrientation)fromInterfaceOrientation {
-    
-    // CALLBACK 4.
-    // This action marks the end of the rotation process.
-    // You can use this method to show views, change the layout of views, or make other changes to your app.
-}
-
-//-------------------------------------------------------------- iOS5 and earlier.
-- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation {
-    return (toInterfaceOrientation == currentInterfaceOrientation);
-}
-
-//-------------------------------------------------------------- iOS6.
-#ifdef __IPHONE_6_0
-- (NSUInteger)supportedInterfaceOrientations {
-    switch (currentInterfaceOrientation) {
-        case UIInterfaceOrientationPortrait:
-            return UIInterfaceOrientationMaskPortrait;
-            break;
-        case UIInterfaceOrientationPortraitUpsideDown:
-            return UIInterfaceOrientationMaskPortraitUpsideDown;
-            break;
-        case UIInterfaceOrientationLandscapeLeft:
-            return UIInterfaceOrientationMaskLandscapeLeft;
-            break;
-        case UIInterfaceOrientationLandscapeRight:
-            return UIInterfaceOrientationMaskLandscapeRight;
-            break;
-        default:
-            break;
-    }
-    // defaults to orientations selected in the .plist file ('Supported Interface Orientations' in the XCode Project)
-    return -1;
-}
-- (BOOL)shouldAutorotate {
+#ifdef __IPHONE_7_0
+-(BOOL)prefersStatusBarHidden{
     return YES;
 }
 #endif
@@ -449,12 +503,6 @@
 - (BOOL)isReadyToRotate {
     return bReadyToRotate;
 }
-
-#ifdef __IPHONE_7_0
--(BOOL)prefersStatusBarHidden{
-    return YES;
-}
-#endif
 
 - (void)setPreferredFPS:(int)fps {
     if(self.glView != nil) {

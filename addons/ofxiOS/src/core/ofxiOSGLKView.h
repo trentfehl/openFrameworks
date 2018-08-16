@@ -40,6 +40,7 @@ class ofAppiOSWindow;
 - (void)draw;
 - (void)setMSAA:(bool)on;
 - (void)updateDimensions;
+- (bool)hardwareRotation;
 - (void)destroy;
 - (CGPoint)orientateTouchPoint:(CGPoint)touchPoint;
 - (void)resetTouches;

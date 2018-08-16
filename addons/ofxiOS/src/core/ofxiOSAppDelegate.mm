@@ -174,6 +174,7 @@
 		}
 		
         if(!bDoesHWOrientation) {
+            [[UIApplication sharedApplication] setStatusBarOrientation:interfaceOrientation animated:NO];
 			if([self.uiViewController respondsToSelector:@selector(rotateToInterfaceOrientation:animated:)]) {
 				[self.uiViewController rotateToInterfaceOrientation:UIInterfaceOrientationPortrait animated:false];
 			}

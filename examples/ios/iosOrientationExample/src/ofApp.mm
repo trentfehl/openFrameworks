@@ -5,9 +5,13 @@
 //--------------------------------------------------------------
 void ofApp::setup(){
 	ofBackground(70);
+
+    pollOrietationStatus();
     
+    ofLog(OF_LOG_NOTICE, "Current Orientation:" + currentOrientation);
+    ofLog(OF_LOG_NOTICE, "Current Orientation OF Syntax:" + currentOrientationSyntax);
     
-    bAuto = false;
+    bAuto = ofAppiOSWindow::getInstance()->doesHWOrientation();
 }
 
 //--------------------------------------------------------------
@@ -20,6 +24,24 @@ void ofApp::draw(){
     
     ofSetLineWidth(2);
     
+  
+    ofSetColor(ofColor::white);
+    
+    ofDrawCircle(10,10,100);
+    
+    
+    string autoStr = (bAuto ? "ON" : "OFF");
+    
+    int x = ofGetWidth() * 0.05;
+    int y = ofGetHeight() * 0.1;
+    
+    ofDrawBitmapString("current orientation is,", x, y);
+    ofDrawBitmapString(" - " + currentOrientation, x, y+=20);
+    ofDrawBitmapString(" - " + currentOrientationSyntax, x, y+=20);
+    ofDrawBitmapString(" - " + currentUIOrientation, x, y+=20);
+    ofDrawBitmapString("auto rotation is " + autoStr + ".", x, y+=40);
+    ofDrawBitmapString("tap screen to change orientation.", x, y+=40);
+    
     ofPoint p1;
     ofPoint p2;
     
@@ -28,20 +50,20 @@ void ofApp::draw(){
     p1.set(15, ofGetHeight()-10);
     p2.set(ofGetWidth()-15, ofGetHeight()-10);
     
-	ofSetColor(ofColor::magenta);
+    ofSetColor(ofColor::magenta);
     ofPushMatrix();
     ofTranslate(p1.x, p1.y);
-    ofRotate(45);
+    ofRotateDeg(45);
     ofDrawLine(0, 0, 0, -10);
-    ofRotate(90);
+    ofRotateDeg(90);
     ofDrawLine(0, 0, 0, -10);
     ofPopMatrix();
     
     ofPushMatrix();
     ofTranslate(p2.x, p2.y);
-    ofRotate(-45);
+    ofRotateDeg(-45);
     ofDrawLine(0, 0, 0, -10);
-    ofRotate(-90);
+    ofRotateDeg(-90);
     ofDrawLine(0, 0, 0, -10);
     ofPopMatrix();
     ofDrawLine( p1.x, p1.y, p2.x, p2.y);
@@ -55,58 +77,22 @@ void ofApp::draw(){
     ofSetColor(ofColor::green);
     ofPushMatrix();
     ofTranslate(p1.x, p1.y);
-    ofRotate(-135);
+    ofRotateDeg(-135);
     ofDrawLine(0, 0, 0, -10);
-    ofRotate(-90);
+    ofRotateDeg(-90);
     ofDrawLine(0, 0, 0, -10);
     ofPopMatrix();
     
     ofPushMatrix();
     ofTranslate(p2.x, p2.y);
-    ofRotate(-45);
+    ofRotateDeg(-45);
     ofDrawLine(0, 0, 0, -10);
-    ofRotate(-270);
+    ofRotateDeg(-270);
     ofDrawLine(0, 0, 0, -10);
     ofPopMatrix();
     ofDrawLine( p1.x, p1.y, p2.x, p2.y);
     ofDrawBitmapString(ofToString(ofGetHeight()), ofGetWidth()-40, ofGetHeight()*0.5-5);
     
-    ofSetColor(ofColor::white);
-    
-    string currentOrientation = "";
-    string currentOrientationSyntax = "";
-    
-    switch (ofGetOrientation()) {
-        case OF_ORIENTATION_DEFAULT:
-            currentOrientation = "Portrait";
-            currentOrientationSyntax = "OF_ORIENTATION_DEFAULT";
-            break;
-        case OF_ORIENTATION_180:
-            currentOrientation = "Portrait Upside Down";
-            currentOrientationSyntax = "OF_ORIENTATION_180";
-            break;
-        case OF_ORIENTATION_90_LEFT:
-            currentOrientation = "Landscape Left";
-            currentOrientationSyntax = "OF_ORIENTATION_90_LEFT";
-            break;
-        case OF_ORIENTATION_90_RIGHT:
-            currentOrientation = "Landscape Right";
-            currentOrientationSyntax = "OF_ORIENTATION_90_RIGHT";
-            break;
-        default:
-            break;
-    }
-    
-    string autoStr = (bAuto ? "ON" : "OFF");
-    
-    int x = ofGetWidth() * 0.05;
-    int y = ofGetHeight() * 0.1;
-    
-    ofDrawBitmapString("current orientation is,", x, y);
-    ofDrawBitmapString(" - " + currentOrientation, x, y+=20);
-    ofDrawBitmapString(" - " + currentOrientationSyntax, x, y+=20);
-    ofDrawBitmapString("auto rotation is " + autoStr + ".", x, y+=40);
-    ofDrawBitmapString("tap screen to change orientation.", x, y+=40);
 }
 
 //--------------------------------------------------------------
@@ -133,6 +119,11 @@ void ofApp::rotateToLandscapeRight() {
 
 void ofApp::toggleAutoRotation() {
     bAuto = !bAuto;
+    
+    if(bAuto)
+        ofAppiOSWindow::getInstance()->enableHardwareOrientation();
+    else
+        ofAppiOSWindow::getInstance()->disableHardwareOrientation();
 }
 
 //--------------------------------------------------------------
@@ -154,6 +145,48 @@ void ofApp::touchDown(ofTouchEventArgs & touch) {
     actionSheet.actionSheetStyle = UIActionSheetStyleBlackTranslucent;
     actionSheet.delegate = [[ActionSheetDelegateForOF alloc] initWithApp:this];
     [actionSheet showInView:ofxiOSGetGLParentView()];
+}
+
+//--------------------------------------------------------------
+void ofApp::pollOrietationStatus() {
+    if(ofAppiOSWindow::getInstance()->getWindowControllerType() == CORE_ANIMATION) {
+        if(ofxiOSGetViewController() != nullptr)
+          currentDeviceOrientation = [ofxiOSGetViewController() currentInterfaceOrientation];
+    } else
+    {   if(ofxiOSGetGLKViewController() != nullptr)
+            currentDeviceOrientation = [ofxiOSGetGLKViewController() currentInterfaceOrientation];
+    }
+    if (currentDeviceOrientation == UIInterfaceOrientationPortrait) {
+        currentUIOrientation = "UIInterfaceOrientationPortrait";
+    } else if (currentDeviceOrientation == UIInterfaceOrientationLandscapeRight) {
+        currentUIOrientation = "UIInterfaceOrientationLandscapeRight";
+    } else if (currentDeviceOrientation == UIInterfaceOrientationPortraitUpsideDown) {
+        currentUIOrientation = "UIInterfaceOrientationPortraitUpsideDown";
+    } else if (currentDeviceOrientation == UIInterfaceOrientationLandscapeLeft) {
+        currentUIOrientation = "UIInterfaceOrientationLandscapeLeft";
+    } else {
+        currentUIOrientation = "UIInterfaceOrientationUnknown";
+    }
+    switch (ofGetOrientation()) {
+        case OF_ORIENTATION_DEFAULT:
+            currentOrientation = "Portrait";
+            currentOrientationSyntax = "OF_ORIENTATION_DEFAULT";
+            break;
+        case OF_ORIENTATION_180:
+            currentOrientation = "Portrait Upside Down";
+            currentOrientationSyntax = "OF_ORIENTATION_180";
+            break;
+        case OF_ORIENTATION_90_LEFT:
+            currentOrientation = "Landscape Left";
+            currentOrientationSyntax = "OF_ORIENTATION_90_LEFT";
+            break;
+        case OF_ORIENTATION_90_RIGHT:
+            currentOrientation = "Landscape Right";
+            currentOrientationSyntax = "OF_ORIENTATION_90_RIGHT";
+            break;
+        default:
+            break;
+    }
 }
 
 //--------------------------------------------------------------
@@ -193,9 +226,11 @@ void ofApp::gotMemoryWarning(){
 
 //--------------------------------------------------------------
 void ofApp::deviceOrientationChanged(int newOrientation){
-    if( bAuto ) {
+//    if( bAuto ) {
         ofSetOrientation((ofOrientation)newOrientation);
-    }
+//    }
+    
+    pollOrietationStatus();
 }
 
 //--------------------------------------------------------------
