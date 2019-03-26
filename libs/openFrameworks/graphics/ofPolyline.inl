@@ -2,6 +2,7 @@
 #include "ofPolyline.h"
 #endif
 
+#include <glm/gtx/quaternion.hpp>
 #include "ofConstants.h"
 #include "ofRectangle.h"
 #include "ofGraphicsBaseTypes.h"
@@ -798,6 +799,15 @@ void ofPolyline_<T>::translate(const glm::vec3 & p){
 template<class T>
 void ofPolyline_<T>::translate(const glm::vec2 &p){
     translate(glm::vec3(p, 0.0));
+}
+
+//--------------------------------------------------
+template<class T>
+void ofPolyline_<T>::rotateQuat(ofQuaternion quat){
+    for(auto & point : points){
+        point = glm::rotate(toGlm(quat), toGlm(point));
+    }
+    flagHasChanged();
 }
 
 //--------------------------------------------------

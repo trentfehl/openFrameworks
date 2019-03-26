@@ -4,6 +4,7 @@
 #define OF_POLYLINE_H
 
 #include "ofConstants.h"
+#include "ofQuaternion.h"
 #include "glm/fwd.hpp"
 #include <deque>
 
@@ -354,6 +355,7 @@ public:
 	/// \name Transform polyline
 	/// \{
 
+	void rotateQuat(ofQuaternion quat);
 	void rotateDeg(float degrees, const glm::vec3& axis);
 	void rotateRad(float radians, const glm::vec3& axis);
 	OF_DEPRECATED_MSG("Use Deg/Rad versions.", void rotate(float degrees, const glm::vec3& axis));
@@ -557,7 +559,7 @@ using ofPolyline = ofPolyline_<ofDefaultVertexType>;
 /// \brief Determine if an (x,y) coordinate is within the polygon defined by a vector of glm::vec3s.
 /// \param x The x dimension of the coordinate.
 /// \param y The y dimension of the coordinate.
-/// \param polygon a vector of glm::vec3s defining a polygon.
+/// \param poly a vector of glm::vec3s defining a polygon.
 /// \returns True if the point defined by the coordinates is enclosed, false otherwise.
 template<class T>
 bool ofInsidePoly(float x, float y, const std::vector<T>& polygon){
